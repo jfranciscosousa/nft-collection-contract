@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+source "./bin/functions"
+
+pp_info "test" "Compile contracts"
+yarn hardhat --network hardhat test
+pp_info "test" "Done!"

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+source "./bin/functions"
+
+pp_info "build" "Compile contracts"
+yarn compile
+pp_info "build" "Done!"

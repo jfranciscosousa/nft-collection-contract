@@ -6,6 +6,7 @@ import { ethers } from "hardhat";
 import { MyToken } from "../typechain";
 
 const BASE_URI = "https://my-api/tokens/";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("MyToken", function () {
   let owner: SignerWithAddress;
@@ -18,20 +19,22 @@ describe("MyToken", function () {
     MyToken = await ethers.getContractFactory("MyToken");
     myToken = (await MyToken.deploy()) as MyToken;
     await myToken.deployed();
+    myToken = myToken.connect(other);
   });
 
   describe("mint", () => {
     it("should mint an item and transfer to address", async function () {
-      await myToken.mint(owner.address, {
+      const receipt = myToken.mint(owner.address, {
         value: parseEther("0.1"),
       });
-      const tokenId = await myToken.lastTokenId();
 
-      expect(await myToken.ownerOf(tokenId)).to.equal(owner.address);
+      await expect(receipt)
+        .to.be.emit(myToken, "Transfer")
+        .withArgs(ZERO_ADDRESS, owner.address, 1);
     });
 
     it("should transfer the payable value to the contract owner", async function () {
-      const receipt = myToken.connect(other).mint(other.address, {
+      const receipt = myToken.mint(other.address, {
         value: parseEther("0.1"),
       });
 
@@ -45,8 +48,42 @@ describe("MyToken", function () {
       );
     });
 
+    it("increments the tokenId after the first mint", async function () {
+      let receipt = myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+
+      await expect(receipt)
+        .to.be.emit(myToken, "Transfer")
+        .withArgs(ZERO_ADDRESS, owner.address, 1);
+
+      receipt = myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+
+      await expect(receipt)
+        .to.be.emit(myToken, "Transfer")
+        .withArgs(ZERO_ADDRESS, owner.address, 2);
+    });
+
+    it("only mints up to 100 assets", async function () {
+      // mint a hundred assets
+      for (let index = 1; index <= 100; index++) {
+        await myToken.mint(owner.address, {
+          value: parseEther("0.1"),
+        });
+      }
+
+      // mint asset 101
+      const receipt = myToken.mint(other.address, {
+        value: parseEther("0.1"),
+      });
+
+      await expect(receipt).to.be.revertedWith("max tokens minted");
+    });
+
     it("should revert if users pay less than 0.1 ETH", async function () {
-      const receipt = myToken.connect(other).mint(other.address, {
+      const receipt = myToken.mint(other.address, {
         value: parseEther("0.09"),
       });
 
@@ -54,7 +91,7 @@ describe("MyToken", function () {
     });
 
     it("should revert if users pay more than 0.1 ETH", async function () {
-      const receipt = myToken.connect(other).mint(owner.address, {
+      const receipt = myToken.mint(owner.address, {
         value: parseEther("0.11"),
       });
 
@@ -67,7 +104,9 @@ describe("MyToken", function () {
       await myToken.mint(owner.address, {
         value: parseEther("0.1"),
       });
-      const tokenId = await myToken.lastTokenId();
+      const tokenId = (
+        await myToken.queryFilter(myToken.filters.Transfer(null, owner.address))
+      )[0].args.tokenId;
 
       expect(await myToken.tokenURI(tokenId)).to.equal(`${BASE_URI}${tokenId}`);
     });

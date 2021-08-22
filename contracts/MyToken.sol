@@ -17,7 +17,7 @@ contract MyToken is ERC721Pausable {
         require(msg.value == 0.1 ether, "minting price is 0.1 ether");
         require(_tokenIds.current() < 100, "max tokens minted");
 
-        transfer(payable(beneficiary), msg.value);
+        _transfer(payable(beneficiary), msg.value);
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _mint(to, newItemId);
@@ -25,11 +25,7 @@ contract MyToken is ERC721Pausable {
         return newItemId;
     }
 
-    function lastTokenId() public view returns (uint256) {
-        return _tokenIds.current();
-    }
-
-    function transfer(address payable _to, uint256 _amount) private {
+    function _transfer(address payable _to, uint256 _amount) internal {
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "failed to send Ether");
     }

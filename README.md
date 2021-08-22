@@ -1,15 +1,22 @@
-# Basic Sample Hardhat Project
+# how-to-nfts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+This is a simple tutorial project to create limited NFT collections.
 
-Try running some of the following tasks:
+We are using scripts for the different tasks on this repo.
 
 ```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
+# setup the project dependencies
+bin/setup
+
+# compile and build the project
+bin/build
+
+# run the tests
+bin/test
+
+# deploy to hardhat's network
+bin/deploy
+
+# deploy to another network (provided it's configured)
+bin/deploy rinkeby
 ```

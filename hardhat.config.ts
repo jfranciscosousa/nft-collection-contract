@@ -1,9 +1,13 @@
+import { config } from "dotenv";
 import { task } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-etherscan";
+import "hardhat-gas-reporter";
+
+config();
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -13,7 +17,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const { MNEMONIC, INFURA_API_KEY, ETHERSCAN_API_KEY } = process.env;
+const {
+  ETH_PRIVATE_KEY,
+  INFURA_API_KEY,
+  ETHERSCAN_API_KEY,
+  COINMARKETCAP_API_KEY,
+} = process.env;
 
 const chainIds = {
   ganache: 1337,
@@ -31,7 +40,7 @@ function createTestnetConfig(
   const url = `https://${network}.infura.io/v3/${INFURA_API_KEY}`;
 
   return {
-    accounts: [`0x${MNEMONIC}`],
+    accounts: [`0x${ETH_PRIVATE_KEY}`],
     chainId: chainIds[network],
     url,
   };
@@ -41,7 +50,16 @@ function createTestnetConfig(
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.4",
+  defaultNetwork: "hardhat",
+  solidity: {
+    version: "0.8.4",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
     hardhat: {
       blockGasLimit: 10000000,
@@ -54,6 +72,6 @@ module.exports = {
   },
   gasReporter: {
     currency: "USD",
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    coinmarketcap: COINMARKETCAP_API_KEY,
   },
 };

@@ -6,6 +6,13 @@ async function main() {
 
   await myToken.deployed();
 
+  if (hre.network.name !== "hardhat") {
+    await hre.run("verify:verify", {
+      address: myToken.address,
+      constructorArguments: [],
+    });
+  }
+
   console.log("MyToken deployed to:", myToken.address);
 }
 
