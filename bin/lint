@@ -3,6 +3,6 @@
 set -e
 source "./bin/functions"
 
-pp_info "test" "Starting test suite..."
-yarn hardhat --network hardhat test
+pp_info "test" "Running linters..."
+yarn solhint "contracts/**/*.sol"
 pp_info "test" "Done!"

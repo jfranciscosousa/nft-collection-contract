@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+source "./bin/functions"
+
+pp_info "test" "Starting test suite with coverage..."
+yarn hardhat --network hardhat coverage
+pp_info "test" "Done!"

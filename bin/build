@@ -3,6 +3,6 @@
 set -e
 source "./bin/functions"
 
-pp_info "build" "Compile contracts"
+pp_info "build" "Compiling contracts..."
 yarn compile
 pp_info "build" "Done!"

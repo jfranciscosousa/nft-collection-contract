@@ -14,6 +14,9 @@ bin/build
 # run the tests
 bin/test
 
+# lint solidity code
+bin/lint
+
 # deploy to hardhat's network
 bin/deploy
 
