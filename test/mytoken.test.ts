@@ -19,7 +19,6 @@ describe("MyToken", function () {
     MyToken = await ethers.getContractFactory("MyToken");
     myToken = (await MyToken.deploy()) as MyToken;
     await myToken.deployed();
-    myToken = myToken.connect(other);
   });
 
   describe("mint", () => {
@@ -34,12 +33,12 @@ describe("MyToken", function () {
     });
 
     it("should transfer the payable value to the contract owner", async function () {
-      const receipt = myToken.mint(other.address, {
+      const receipt = myToken.connect(other).mint(other.address, {
         value: parseEther("0.1"),
       });
 
       await expect(() => receipt).to.changeEtherBalance(
-        owner,
+        myToken,
         parseEther("0.1").toString()
       );
       await expect(() => receipt).to.changeEtherBalance(
@@ -88,6 +87,9 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith("minting price is 0.1 ether");
+      expect(await ethers.provider.getBalance(myToken.address)).to.eq(
+        parseEther("0").toString()
+      );
     });
 
     it("should revert if users pay more than 0.1 ETH", async function () {
@@ -96,6 +98,9 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith("minting price is 0.1 ether");
+      expect(await ethers.provider.getBalance(myToken.address)).to.eq(
+        parseEther("0").toString()
+      );
     });
   });
 
@@ -109,6 +114,53 @@ describe("MyToken", function () {
       )[0].args.tokenId;
 
       expect(await myToken.tokenURI(tokenId)).to.equal(`${BASE_URI}${tokenId}`);
+    });
+  });
+
+  describe("withdrawFunds", () => {
+    it("should return all funds to caller", async () => {
+      // mint 3 times
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+
+      const receipt = myToken.withdrawFunds();
+
+      await expect(() => receipt).to.changeEtherBalance(
+        owner,
+        parseEther("0.3").toString()
+      );
+      expect(await ethers.provider.getBalance(myToken.address)).to.eq(
+        parseEther("0").toString()
+      );
+    });
+
+    it("should not return funds to caller if it's not the owner", async () => {
+      // mint 3 times
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+      await myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+
+      const receipt = myToken.connect(other).withdrawFunds();
+
+      await expect(receipt).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+      expect(await ethers.provider.getBalance(myToken.address)).to.eq(
+        parseEther("0.3").toString()
+      );
     });
   });
 });
