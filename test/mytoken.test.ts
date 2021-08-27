@@ -1,23 +1,49 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ContractFactory } from "ethers";
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { MyToken } from "../typechain";
+import { MyToken, MyToken__factory } from "../typechain";
 
+const MAX_TOKENS = 100;
 const BASE_URI = "https://my-api/tokens/";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("MyToken", function () {
   let owner: SignerWithAddress;
   let other: SignerWithAddress;
-  let MyToken: ContractFactory;
+  let MyToken: MyToken__factory;
   let myToken: MyToken;
+
+  async function mintAndGetTokenId() {
+    await myToken.mint(owner.address, {
+      value: parseEther("0.1"),
+    });
+
+    const transfers = await myToken.queryFilter(
+      myToken.filters.Transfer(null, owner.address)
+    );
+
+    return transfers[transfers.length - 1].args.tokenId;
+  }
+
+  async function mintMultiple(times: number) {
+    const promises = [];
+
+    for (let index = 1; index <= times; index++) {
+      promises.push(
+        myToken.mint(owner.address, {
+          value: parseEther("0.1"),
+        })
+      );
+    }
+
+    await Promise.all(promises);
+  }
 
   beforeEach(async () => {
     [owner, other] = await ethers.getSigners();
-    MyToken = await ethers.getContractFactory("MyToken");
-    myToken = (await MyToken.deploy()) as MyToken;
+    MyToken = (await ethers.getContractFactory("MyToken")) as MyToken__factory;
+    myToken = await MyToken.deploy(MAX_TOKENS, BASE_URI);
     await myToken.deployed();
   });
 
@@ -65,20 +91,15 @@ describe("MyToken", function () {
         .withArgs(ZERO_ADDRESS, owner.address, 2);
     });
 
-    it("only mints up to 100 assets", async function () {
-      // mint a hundred assets
-      for (let index = 1; index <= 100; index++) {
-        await myToken.mint(owner.address, {
-          value: parseEther("0.1"),
-        });
-      }
+    it("only mints up to MAX_TOKENS", async function () {
+      await mintMultiple(MAX_TOKENS);
 
       // mint asset 101
       const receipt = myToken.mint(other.address, {
         value: parseEther("0.1"),
       });
 
-      await expect(receipt).to.be.revertedWith("max tokens minted");
+      await expect(receipt).to.be.revertedWith("max supply minted");
     });
 
     it("should revert if users pay less than 0.1 ETH", async function () {
@@ -105,7 +126,7 @@ describe("MyToken", function () {
   });
 
   describe("tokenURI", () => {
-    it("should resolve to our API", async function () {
+    it("should resolve to the defined BASE_URI with tokenId", async function () {
       await myToken.mint(owner.address, {
         value: parseEther("0.1"),
       });
@@ -113,6 +134,31 @@ describe("MyToken", function () {
         await myToken.queryFilter(myToken.filters.Transfer(null, owner.address))
       )[0].args.tokenId;
 
+      expect(await myToken.tokenURI(tokenId)).to.equal(`${BASE_URI}${tokenId}`);
+    });
+  });
+
+  describe("setBaseTokenURI", () => {
+    it("should change the baseURI", async function () {
+      const tokenId = await mintAndGetTokenId();
+
+      await myToken.setBaseTokenURI("https://test.com/");
+
+      expect(await myToken.tokenURI(tokenId)).to.equal(
+        `https://test.com/${tokenId}`
+      );
+    });
+
+    it("should only be callable by owner", async function () {
+      const tokenId = await mintAndGetTokenId();
+
+      const receipt = myToken
+        .connect(other)
+        .setBaseTokenURI("https://test.com/");
+
+      await expect(receipt).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
       expect(await myToken.tokenURI(tokenId)).to.equal(`${BASE_URI}${tokenId}`);
     });
   });
@@ -161,6 +207,32 @@ describe("MyToken", function () {
       expect(await ethers.provider.getBalance(myToken.address)).to.eq(
         parseEther("0.3").toString()
       );
+    });
+  });
+
+  describe("setMaxSupply", () => {
+    it("should increase the max supply of tokens", async () => {
+      await myToken.setMaxSupply(MAX_TOKENS + 1);
+
+      expect(await myToken.getMaxSupply()).to.eq(MAX_TOKENS + 1);
+    });
+
+    it("should be able to mint more tokens after increasing supply", async () => {
+      await mintMultiple(MAX_TOKENS);
+
+      await myToken.setMaxSupply(MAX_TOKENS + 1);
+      const tokenId = await mintAndGetTokenId();
+
+      expect(tokenId).to.eq(MAX_TOKENS + 1);
+    });
+
+    it("should not change the supply if it's not called by the owner", async () => {
+      const receipt = myToken.connect(other).setMaxSupply(MAX_TOKENS + 1);
+
+      await expect(receipt).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+      expect(await myToken.getMaxSupply()).to.eq(MAX_TOKENS);
     });
   });
 });

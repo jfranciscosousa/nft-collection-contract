@@ -4,5 +4,5 @@ set -e
 source "./bin/functions"
 
 pp_info "build" "Compiling contracts..."
-yarn compile
+yarn hardhat --network ${1:-hardhat} compile
 pp_info "build" "Done!"
