@@ -7,14 +7,14 @@
     "@types/mocha": "^9.0.0",
     "chai": "^4.2.0",
     "ethereum-waffle": "^3.0.0",
-    "ethers": "^5.0.0",
+    "ethers": "^5.4.6",
     "hardhat": "^2.6.1",
     "solhint": "^3.3.6",
-    "solidity-coverage": "^0.7.16"
+    "solidity-coverage": "^0.7.17"
   },
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.5",
-    "@openzeppelin/contracts": "^4.3.0",
+    "@openzeppelin/contracts": "^4.3.1",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
     "dotenv": "^10.0.0",
