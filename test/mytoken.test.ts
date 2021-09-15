@@ -1,19 +1,34 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { add, sub } from "date-fns";
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { MyToken, MyToken__factory } from "../typechain";
+import dateToBlockchain from "../utils/dateToBlockchain";
 
 const MAX_TOKENS = 100;
 const BASE_URI = "https://my-api/tokens/";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const MINT_PRICE = parseEther("0.1");
+const LAUNCH_DATE = dateToBlockchain(sub(new Date(), { days: 2 }));
 
 describe("MyToken", function () {
   let owner: SignerWithAddress;
   let other: SignerWithAddress;
   let MyToken: MyToken__factory;
   let myToken: MyToken;
+
+  beforeEach(async () => {
+    [owner, other] = await ethers.getSigners();
+    MyToken = (await ethers.getContractFactory("MyToken")) as MyToken__factory;
+    myToken = await MyToken.deploy(
+      MAX_TOKENS,
+      BASE_URI,
+      MINT_PRICE,
+      LAUNCH_DATE
+    );
+    await myToken.deployed();
+  });
 
   async function mintAndGetTokenId() {
     await myToken.mint(owner.address, {
@@ -40,13 +55,6 @@ describe("MyToken", function () {
 
     await Promise.all(promises);
   }
-
-  beforeEach(async () => {
-    [owner, other] = await ethers.getSigners();
-    MyToken = (await ethers.getContractFactory("MyToken")) as MyToken__factory;
-    myToken = await MyToken.deploy(MAX_TOKENS, BASE_URI, MINT_PRICE);
-    await myToken.deployed();
-  });
 
   describe("mint", () => {
     it("should mint an item and transfer to address", async function () {
@@ -101,6 +109,20 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith("max supply minted");
+    });
+
+    it("only mints after timestamp", async function () {
+      await myToken.setLaunchDate(
+        dateToBlockchain(add(new Date(), { days: 2 }))
+      );
+
+      const receipt = myToken.mint(owner.address, {
+        value: parseEther("0.1"),
+      });
+
+      await expect(receipt).to.be.revertedWith(
+        "minting not enabled yet, please wait"
+      );
     });
 
     it("should revert if users pay less than 0.1 ETH", async function () {
@@ -228,6 +250,26 @@ describe("MyToken", function () {
         "Ownable: caller is not the owner"
       );
       expect(await myToken.getMintPrice()).to.eq(MINT_PRICE);
+    });
+  });
+
+  describe("setLaunchDate", () => {
+    it("should change the launch date", async () => {
+      const newDate = dateToBlockchain(add(new Date(), { hours: 1 }));
+
+      await myToken.setLaunchDate(newDate);
+
+      expect(await myToken.getLaunchDate()).to.eq(newDate);
+    });
+
+    it("cannot change the launch date before the current date", async () => {
+      const newDate = dateToBlockchain(sub(new Date(), { seconds: 1 }));
+
+      const receipt = myToken.setLaunchDate(newDate);
+
+      expect(receipt).to.be.revertedWith(
+        "launch date should be greated than now"
+      );
     });
   });
 
