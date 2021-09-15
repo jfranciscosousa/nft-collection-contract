@@ -34,13 +34,7 @@ contract MyToken is ERC721Pausable, Ownable {
         );
         require(
             msg.value == mintPrice,
-            string(
-                abi.encodePacked(
-                    "minting price is ",
-                    mintPrice.toString(),
-                    " wei"
-                )
-            )
+            "minting price is not equal to mintPrice"
         );
         require(tokenIds.current() < maxSupply, "max supply minted");
 
@@ -57,10 +51,6 @@ contract MyToken is ERC721Pausable, Ownable {
 
     function setBaseTokenURI(string memory _baseTokenURI) public onlyOwner {
         baseTokenURI = _baseTokenURI;
-    }
-
-    function withdrawFunds() external onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
     }
 
     function setMaxSupply(uint256 _maxSupply) public onlyOwner {
@@ -102,5 +92,12 @@ contract MyToken is ERC721Pausable, Ownable {
 
     function mintEnabled() public view returns (bool) {
         return block.timestamp >= launchDate && tokenIds.current() < maxSupply;
+    }
+
+    function withdrawFunds() external onlyOwner {
+        uint256 contractBalance = address(this).balance;
+        (bool success,  ) = msg.sender.call{value: contractBalance}("");
+
+        require(success, "withdrawFunds failed");
     }
 }

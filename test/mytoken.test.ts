@@ -131,7 +131,7 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith(
-        "minting price is 100000000000000000 wei"
+        "minting price is not equal to mintPrice"
       );
       expect(await ethers.provider.getBalance(myToken.address)).to.eq(
         parseEther("0").toString()
@@ -144,7 +144,7 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith(
-        "minting price is 100000000000000000 wei"
+        "minting price is not equal to mintPrice"
       );
       expect(await ethers.provider.getBalance(myToken.address)).to.eq(
         parseEther("0").toString()
@@ -234,7 +234,7 @@ describe("MyToken", function () {
       });
 
       await expect(receipt).to.be.revertedWith(
-        "minting price is 200000000000000000 wei"
+        "minting price is not equal to mintPrice"
       );
       expect(await ethers.provider.getBalance(myToken.address)).to.eq(
         parseEther("0").toString()
